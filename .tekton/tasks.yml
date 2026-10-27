@@ -1,0 +1,41 @@
+# Custom Tekton Tasks for the CI/CD pipeline.
+# The full pipeline also uses standard ClusterTasks (git-clone, buildah,
+# openshift-client) that are normally already installed on the OpenShift
+# Pipelines cluster provided by the course lab — only "cleanup" and "test"
+# are written here as custom Tasks, per the final project's Question 3.
+
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: cleanup
+spec:
+  workspaces:
+    - name: output
+  steps:
+    - name: remove
+      image: alpine
+      workingDir: $(workspaces.output.path)
+      script: |
+        #!/bin/sh
+        set -e
+        echo "Cleaning up workspace..."
+        rm -rf $(workspaces.output.path)/*
+        echo "Cleanup complete."
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: test
+spec:
+  workspaces:
+    - name: output
+  steps:
+    - name: nose-test
+      image: python:3.9-slim
+      workingDir: $(workspaces.output.path)
+      script: |
+        #!/bin/sh
+        set -e
+        pip install -r requirements.txt
+        pip install -r requirements_test.txt
+        nosetests tests/
